@@ -17,7 +17,7 @@ Local JSON Beautifier is an offline tool designed to help you effortlessly forma
 
 
 ## Screenshots 
-![Screenshot 2024-10-28 at 22 56 42](https://github.com/user-attachments/assets/6175d497-9b84-4acd-9f5a-15d9d666ee5f)
+![Screenshot 2024-10-28 at 22 56 42](https://github.com/user-attachments/assets/4020fd41-9816-4c86-babc-db2c3c19fb1b)
 
 
 
