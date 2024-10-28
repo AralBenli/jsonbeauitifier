@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Local JSON Beautifier</title>
+    <style>
+        :root {
+            --bg-color-light: #f7f7f7;
+            --text-color-light: #333333;
+            --bg-color-dark: #2b2b2b;
+            --text-color-dark: #dcdcdc;
+
+            /* Light Mode Colors for Depths */
+            --key-color-depth-1-light: #005f73;
+            --key-color-depth-2-light: #0a9396;
+            --key-color-depth-3-light: #94d2bd;
+            --key-color-depth-4-light: #ee9b00;
+            --key-color-depth-5-light: #ca6702;
+            --key-color-depth-6-light: #ff8f00;
+            --key-color-depth-7-light: #dd4b39;
+            --key-color-depth-8-light: #7b1fa2;
+            --key-color-depth-9-light: #1e88e5;
+            --key-color-depth-10-light: #43a047;
+
+            /* Dark Mode Colors for Depths */
+            --key-color-depth-1-dark: #94a1b2;
+            --key-color-depth-2-dark: #89b6a5;
+            --key-color-depth-3-dark: #f4a261;
+            --key-color-depth-4-dark: #d36f55;
+            --key-color-depth-5-dark: #da70d6;
+            --key-color-depth-6-dark: #ffb74d;
+            --key-color-depth-7-dark: #ff7043;
+            --key-color-depth-8-dark: #ab47bc;
+            --key-color-depth-9-dark: #42a5f5;
+            --key-color-depth-10-dark: #66bb6a;
+        }
+
+        body.light-mode {
+            background-color: var(--bg-color-light);
+            color: var(--text-color-light);
+        }
+
+        body.dark-mode {
+            background-color: var(--bg-color-dark);
+            color: var(--text-color-dark);
+        }
+
+        /* Mode Toggle Icon Styles */
+        .mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            cursor: pointer;
+        }
+
+        .icon {
+            width: 30px;
+            height: 30px;
+            fill: currentColor;
+        }
+
+        .sun-icon {
+            display: none;
+        }
+
+        .moon-icon {
+            display: none;
+        }
+
+        body.light-mode .sun-icon {
+            display: block;
+        }
+
+        body.light-mode .moon-icon {
+            display: none;
+        }
+
+        body.dark-mode .sun-icon {
+            display: none;
+        }
+
+        body.dark-mode .moon-icon {
+            display: block;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            font-family: monospace;
+            background-color: var(--bg-color-light);
+            color: var(--text-color-light);
+        }
+
+        body.dark-mode textarea {
+            background-color: var(--bg-color-dark);
+            color: var(--text-color-dark);
+        }
+
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        pre {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            position: relative;
+            margin: 0;
+        }
+
+        body.dark-mode pre {
+            background-color: #3c3c3c;
+            border-color: #555;
+        }
+
+        .expand-collapse-buttons {
+            display: none;
+            margin-top: 10px;
+            position: relative;
+        }
+
+        .fullscreen-toggle {
+            display: none; /* Hidden since we're using an icon */
+        }
+
+        /* Icon Styles */
+        .icon-button {
+            display: none; /* Initially invisible */
+            position: absolute;
+            top: 10px;
+            cursor: pointer;
+            fill: #007bff;
+            width: 24px;
+            height: 24px;
+            z-index: 10;
+        }
+
+        .icon-button:hover {
+            fill: #0056b3;
+        }
+
+        .fullscreen-icon {
+            right: 10px;
+        }
+
+        .copy-icon {
+            right: 40px;
+        }
+
+        .toast {
+            visibility: hidden;
+            min-width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 12px;
+            position: fixed;
+            z-index: 1;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 17px;
+        }
+
+        .toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        @keyframes fadein {
+            from {bottom: 20px; opacity: 0;}
+            to {bottom: 30px; opacity: 1;}
+        }
+
+        @keyframes fadeout {
+            from {bottom: 30px; opacity: 1;}
+            to {bottom: 40px; opacity: 0;}
+        }
+
+        .fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            background-color: var(--bg-color-light);
+            overflow: auto;
+        }
+
+        body.dark-mode .fullscreen {
+            background-color: var(--bg-color-dark);
+        }
+
+        /* Light Mode Key Colors by Depth */
+        body.light-mode .key.depth-1 { color: var(--key-color-depth-1-light); }
+        body.light-mode .key.depth-2 { color: var(--key-color-depth-2-light); }
+        body.light-mode .key.depth-3 { color: var(--key-color-depth-3-light); }
+        body.light-mode .key.depth-4 { color: var(--key-color-depth-4-light); }
+        body.light-mode .key.depth-5 { color: var(--key-color-depth-5-light); }
+        body.light-mode .key.depth-6 { color: var(--key-color-depth-6-light); }
+        body.light-mode .key.depth-7 { color: var(--key-color-depth-7-light); }
+        body.light-mode .key.depth-8 { color: var(--key-color-depth-8-light); }
+        body.light-mode .key.depth-9 { color: var(--key-color-depth-9-light); }
+        body.light-mode .key.depth-10 { color: var(--key-color-depth-10-light); }
+
+        /* Dark Mode Key Colors by Depth */
+        body.dark-mode .key.depth-1 { color: var(--key-color-depth-1-dark); }
+        body.dark-mode .key.depth-2 { color: var(--key-color-depth-2-dark); }
+        body.dark-mode .key.depth-3 { color: var(--key-color-depth-3-dark); }
+        body.dark-mode .key.depth-4 { color: var(--key-color-depth-4-dark); }
+        body.dark-mode .key.depth-5 { color: var(--key-color-depth-5-dark); }
+        body.dark-mode .key.depth-6 { color: var(--key-color-depth-6-dark); }
+        body.dark-mode .key.depth-7 { color: var(--key-color-depth-7-dark); }
+        body.dark-mode .key.depth-8 { color: var(--key-color-depth-8-dark); }
+        body.dark-mode .key.depth-9 { color: var(--key-color-depth-9-dark); }
+        body.dark-mode .key.depth-10 { color: var(--key-color-depth-10-dark); }
+
+        /* Strings, Numbers, Booleans, Null */
+        .string { color: #22863a; }
+        .number { color: #d73a49; }
+        .boolean { color: #b08800; }
+        .null { color: #e36209; }
+
+        /* Highlight Style */
+        .highlight {
+            background-color: rgba(255, 255, 0, 0.5);
+        }
+
+        #scrollTopBtn {
+            display: none;
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            z-index: 99;
+            font-size: 18px;
+            border: none;
+            outline: none;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            padding: 12px;
+            border-radius: 50%;
+        }
+
+        #scrollTopBtn:hover {
+            background-color: #0056b3;
+        }
+
+        .arrow {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .brace {
+            user-select: none;
+        }
+
+        /* Output container styling to position icons */
+        .output-wrapper {
+            position: relative;
+        }
+    </style>
+</head>
+<body class="light-mode">
+
+<!-- Mode Toggle Icons -->
+<div class="mode-toggle">
+    <!-- Sun Icon -->
+    <svg class="icon sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <!-- Sun icon paths -->
+        <circle cx="12" cy="12" r="5" fill="currentColor"/>
+        <line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2"/>
+        <line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2"/>
+        <line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2"/>
+        <line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2"/>
+    </svg>
+    <!-- Moon Icon -->
+    <svg class="icon moon-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <!-- Moon icon paths -->
+        <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" fill="currentColor"/>
+    </svg>
+</div>
+
+<h1>Local JSON Beautifier</h1>
+
+<p>Paste your JSON below:</p>
+<textarea id="jsonInput" placeholder="Paste your JSON here..."></textarea>
+
+<br><br>
+<button id="beautifyBtn">Beautify JSON</button>
+<label><input type="checkbox" id="removeDuplicateToggle"> Remove Duplicates</label>
+
+<h2>Beautified JSON Output:</h2>
+<div id="output-container">
+    <div class="expand-collapse-buttons">
+        <input type="text" id="searchInput" placeholder="Search...">
+        <span id="searchCount" style="margin-left: 10px;"></span>
+        <button id="expandAllBtn">Expand All</button>
+        <button id="collapseAllBtn">Collapse All</button>
+    </div>
+    <div class="output-wrapper">
+        <pre id="output"></pre>
+        <!-- Full Screen Icon -->
+        <svg id="fullscreenIcon" class="icon-button fullscreen-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M4 4h6V2H2v8h2V4zm14 0v6h2V2h-8v2h6zM4 20v-6H2v8h8v-2H4zm16-6h-2v6h-6v2h8v-8z"/>
+        </svg>
+        <!-- Copy Icon -->
+        <svg id="copyIcon" class="icon-button copy-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v16h14c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 18H8V7h11v16z"/>
+        </svg>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" class="toast">Copied to clipboard!</div>
+
+<!-- Scroll to Top Button -->
+<button id="scrollTopBtn">Top</button>
+
+<script>
+    let isFullScreen = false;
+    let currentMatchIndex = -1;
+    let matchesArray = [];
+    let beautifiedJson = '';
+    let expandedState = new WeakMap();
+
+    // DOM Elements
+    const modeToggle = document.querySelector('.mode-toggle');
+    const beautifyBtn = document.getElementById('beautifyBtn');
+    const expandAllBtn = document.getElementById('expandAllBtn');
+    const collapseAllBtn = document.getElementById('collapseAllBtn');
+    const copyIcon = document.getElementById('copyIcon');
+    const fullscreenIcon = document.getElementById('fullscreenIcon');
+    const outputContainer = document.getElementById('output-container');
+    const output = document.getElementById('output');
+    const searchInput = document.getElementById('searchInput');
+    const scrollTopBtn = document.getElementById('scrollTopBtn');
+    const toast = document.getElementById('toast');
+    const removeDuplicateToggle = document.getElementById('removeDuplicateToggle');
+
+    // Event Listeners
+    modeToggle.addEventListener('click', toggleDarkMode);
+    beautifyBtn.addEventListener('click', beautifyJson);
+    expandAllBtn.addEventListener('click', expandAll);
+    collapseAllBtn.addEventListener('click', collapseAll);
+    copyIcon.addEventListener('click', copyBeautifiedOutput);
+    fullscreenIcon.addEventListener('click', toggleFullScreen);
+    searchInput.addEventListener('input', performSearch);
+    scrollTopBtn.addEventListener('click', scrollToTop);
+
+    window.onload = function () {
+        const savedTheme = localStorage.getItem('theme') || 'light-mode';
+        document.body.classList.add(savedTheme);
+
+        // Attach event listener for expand/collapse functionality
+        output.addEventListener('click', function (event) {
+            let target = event.target;
+            // If the target is a text node, use its parent element
+            if (target.nodeType === Node.TEXT_NODE) {
+                target = target.parentNode;
+            }
+            const expandableElement = target.closest('.expandable');
+            if (expandableElement) {
+                toggleExpand(expandableElement);
+            }
+        });
+    }
+
+    // Toggle between Light and Dark mode
+    function toggleDarkMode() {
+        const bodyClass = document.body.classList;
+
+        if (bodyClass.contains('light-mode')) {
+            bodyClass.replace('light-mode', 'dark-mode');
+            localStorage.setItem('theme', 'dark-mode');
+        } else {
+            bodyClass.replace('dark-mode', 'light-mode');
+            localStorage.setItem('theme', 'light-mode');
+        }
+    }
+
+    function beautifyJson() {
+        const input = document.getElementById('jsonInput').value;
+        let jsonObjects = [];
+        try {
+            // Try parsing the entire input
+            const jsonObject = JSON.parse(input);
+            jsonObjects.push(jsonObject);
+        } catch (e) {
+            // If parsing fails, attempt to extract valid JSON fragments
+            const potentialJsons = extractJsonFragments(input);
+            potentialJsons.forEach(fragment => {
+                try {
+                    const jsonObject = JSON.parse(fragment);
+                    jsonObjects.push(jsonObject);
+                } catch (e) {
+                    // Ignore invalid fragments
+                }
+            });
+        }
+
+        if (jsonObjects.length > 0) {
+            let combinedJson = jsonObjects.length > 1 ? jsonObjects : jsonObjects[0];
+
+            // Filter duplicate keys if the checkbox is checked
+            if (removeDuplicateToggle.checked) {
+                combinedJson = removeDuplicateKeys(combinedJson);
+            }
+
+            beautifiedJson = JSON.stringify(combinedJson, null, 4);
+            output.innerHTML = syntaxHighlightAndCollapse(beautifiedJson);
+
+            // Re-bind expand/collapse event listeners after rendering
+            // (No need for individual listeners due to event delegation)
+
+            document.querySelector('.expand-collapse-buttons').style.display = 'block';
+            // Show the icons
+            copyIcon.style.display = 'block';
+            fullscreenIcon.style.display = 'block';
+            expandedState = new WeakMap(); // Reset expanded state
+            performSearch(); // Reset search and perform on new JSON
+        } else {
+            output.textContent = "Invalid JSON!";
+            document.querySelector('.expand-collapse-buttons').style.display = 'none';
+            // Hide the icons
+            copyIcon.style.display = 'none';
+            fullscreenIcon.style.display = 'none';
+            beautifiedJson = '';
+        }
+    }
+
+    function extractJsonFragments(input) {
+        const fragments = [];
+        let stack = [];
+        let startIndex = -1;
+
+        for (let i = 0; i < input.length; i++) {
+            const char = input[i];
+
+            if (char === '{' || char === '[') {
+                if (stack.length === 0) {
+                    startIndex = i;
+                }
+                stack.push(char);
+            } else if (char === '}' || char === ']') {
+                if (stack.length > 0) {
+                    const last = stack[stack.length - 1];
+                    if ((char === '}' && last === '{') || (char === ']' && last === '[')) {
+                        stack.pop();
+                        if (stack.length === 0 && startIndex !== -1) {
+                            const fragment = input.substring(startIndex, i + 1);
+                            fragments.push(fragment);
+                            startIndex = -1;
+                        }
+                    } else {
+                        // Mismatched brackets
+                        stack = [];
+                        startIndex = -1;
+                    }
+                }
+            }
+        }
+
+        return fragments;
+    }
+
+    function removeDuplicateKeys(jsonObj) {
+        const seen = new Set();
+
+        function recursiveRemove(obj) {
+            if (Array.isArray(obj)) {
+                return obj.map(item => recursiveRemove(item));
+            } else if (typeof obj === 'object' && obj !== null) {
+                for (let key in obj) {
+                    if (seen.has(key)) {
+                        delete obj[key];
+                    } else {
+                        seen.add(key);
+                        obj[key] = recursiveRemove(obj[key]);
+                    }
+                }
+            }
+            return obj;
+        }
+
+        return recursiveRemove(jsonObj);
+    }
+
+    function syntaxHighlightAndCollapse(json) {
+        let i = 0;
+        let output = '';
+        let depth = 0;
+        const maxDepth = 10;
+
+        function processChar() {
+            let char = json[i];
+            if (char === '{' || char === '[') {
+                depth++;
+                let cls = 'brace';
+                output += `<span class="expandable"><span class="arrow">▶</span><span class="${cls}">${char}</span></span><span class="collapsible" style="display:none;">`;
+            } else if (char === '}' || char === ']') {
+                output += `</span><span class="brace">${char}</span>`;
+                depth--;
+            } else if (char === ':') {
+                output += `<span class="colon">${char}</span>`;
+            } else if (char === ',') {
+                output += `<span class="comma">${char}</span>`;
+            } else if (char === '"') {
+                let start = i;
+                i++;
+                while (i < json.length) {
+                    char = json[i];
+                    if (char === '"' && json[i - 1] !== '\\') {
+                        break;
+                    }
+                    i++;
+                }
+                let str = json.substring(start, i + 1);
+                let cls;
+                if (json[i + 1] === ':') {
+                    cls = `key depth-${Math.min(depth + 1, maxDepth)}`;
+                } else {
+                    cls = 'string';
+                }
+                output += `<span class="${cls}">${str}</span>`;
+            } else if (/\d/.test(char) || char === '-' || char === '.') {
+                let start = i;
+                while (i < json.length && /[\d.eE+-]/.test(json[i])) {
+                    i++;
+                }
+                let number = json.substring(start, i);
+                i--; // Adjust index since it will be incremented in the main loop
+                output += `<span class="number">${number}</span>`;
+            } else if (/true|false|null/.test(json.substring(i, i + 4))) {
+                let boolNull = json.substring(i, i + 4);
+                output += `<span class="boolean">${boolNull}</span>`;
+                i += 3;
+            } else {
+                output += char;
+            }
+        }
+
+        while (i < json.length) {
+            processChar();
+            i++;
+        }
+
+        return output;
+    }
+
+    function toggleExpand(element) {
+        const collapsible = element.nextElementSibling;
+        const arrow = element.querySelector('.arrow');
+        if (collapsible.style.display === 'none') {
+            collapsible.style.display = 'inline';
+            arrow.textContent = '▼';
+            expandedState.set(element, true);
+        } else {
+            collapsible.style.display = 'none';
+            arrow.textContent = '▶';
+            expandedState.set(element, false);
+        }
+    }
+
+    function performSearch() {
+        const input = searchInput.value.trim();
+        matchesArray = [];
+        currentMatchIndex = -1;
+
+        // Remove existing highlights
+        removeHighlights(output);
+
+        if (input) {
+            // Collect text nodes
+            const textNodes = [];
+            collectTextNodes(output, textNodes);
+
+            // Highlight matches in text nodes
+            textNodes.forEach(node => {
+                highlightTextNode(node, input);
+            });
+
+            document.getElementById('searchCount').textContent = `${matchesArray.length} matches found`;
+            if (matchesArray.length > 0) {
+                currentMatchIndex = 0;
+                highlightCurrent();
+            }
+        } else {
+            document.getElementById('searchCount').textContent = '';
+        }
+    }
+
+    function removeHighlights(node) {
+        const highlights = node.querySelectorAll('.highlight');
+        highlights.forEach(highlight => {
+            const parent = highlight.parentNode;
+            parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
+            parent.normalize();
+        });
+    }
+
+    function collectTextNodes(node, textNodes) {
+        if (node.nodeType === 3) { // Text node
+            textNodes.push(node);
+        } else if (node.nodeType === 1 && node.childNodes && !['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(node.tagName)) {
+            node.childNodes.forEach(child => {
+                collectTextNodes(child, textNodes);
+            });
+        }
+    }
+
+    function highlightTextNode(node, searchTerm) {
+        let text = node.nodeValue;
+        let searchRegex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        let match;
+        let lastIndex = 0;
+        let fragment = document.createDocumentFragment();
+
+        while ((match = searchRegex.exec(text)) !== null) {
+            if (match.index > lastIndex) {
+                fragment.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
+            }
+
+            const highlightSpan = document.createElement('span');
+            highlightSpan.className = 'highlight';
+            highlightSpan.textContent = match[0];
+            fragment.appendChild(highlightSpan);
+            matchesArray.push(highlightSpan);
+
+            lastIndex = match.index + match[0].length;
+        }
+
+        if (lastIndex < text.length) {
+            fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+        }
+
+        if (fragment.childNodes.length > 0) {
+            node.parentNode.replaceChild(fragment, node);
+        }
+    }
+
+    function highlightCurrent() {
+        matchesArray.forEach((match, index) => {
+            match.style.backgroundColor = index === currentMatchIndex ? 'orange' : 'rgba(255, 255, 0, 0.5)';
+        });
+        if (matchesArray[currentMatchIndex]) {
+            matchesArray[currentMatchIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function navigateNext() {
+        if (matchesArray.length > 0) {
+            currentMatchIndex = (currentMatchIndex + 1) % matchesArray.length;
+            highlightCurrent();
+        }
+    }
+
+    function navigatePrevious() {
+        if (matchesArray.length > 0) {
+            currentMatchIndex = (currentMatchIndex - 1 + matchesArray.length) % matchesArray.length;
+            highlightCurrent();
+        }
+    }
+
+    function expandAll() {
+        document.querySelectorAll('.collapsible').forEach(collapse => {
+            collapse.style.display = 'inline';
+        });
+        document.querySelectorAll('.arrow').forEach(arrow => {
+            arrow.textContent = '▼';
+        });
+        document.querySelectorAll('.expandable').forEach(element => {
+            expandedState.set(element, true);
+        });
+    }
+
+    function collapseAll() {
+        document.querySelectorAll('.collapsible').forEach(collapse => {
+            collapse.style.display = 'none';
+        });
+        document.querySelectorAll('.arrow').forEach(arrow => {
+            arrow.textContent = '▶';
+        });
+        document.querySelectorAll('.expandable').forEach(element => {
+            expandedState.set(element, false);
+        });
+    }
+
+    // Toggle Fullscreen
+    function toggleFullScreen() {
+        outputContainer.classList.toggle('fullscreen');
+        isFullScreen = !isFullScreen;
+    }
+
+    // Scroll to top function
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Show or hide the Scroll to Top button based on the scroll position
+    window.onscroll = function () {
+        if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
+            scrollTopBtn.style.display = "block";
+        } else {
+            scrollTopBtn.style.display = "none";
+        }
+    };
+
+    // Keyboard navigation for matches
+    window.addEventListener('keydown', function (event) {
+        if (event.key === 'ArrowDown') {
+            navigateNext();
+            event.preventDefault(); // Prevent scrolling the page
+        } else if (event.key === 'ArrowUp') {
+            navigatePrevious();
+            event.preventDefault(); // Prevent scrolling the page
+        }
+    });
+
+    // Copy Beautified Output to Clipboard
+    function copyBeautifiedOutput() {
+        if (beautifiedJson) {
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = beautifiedJson;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            try {
+                const successful = document.execCommand('copy');
+                document.body.removeChild(tempTextarea);
+                if (successful) {
+                    showToast('Copied to clipboard!');
+                } else {
+                    showToast('Failed to copy.');
+                }
+            } catch (err) {
+                document.body.removeChild(tempTextarea);
+                showToast('Failed to copy: ' + err);
+            }
+        } else {
+            showToast('No beautified JSON to copy.');
+        }
+    }
+
+    // Show Toast Notification
+    function showToast(message) {
+        toast.textContent = message;
+        toast.className = "toast show";
+        setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+    }
+</script>
+
+</body>
+</html>
